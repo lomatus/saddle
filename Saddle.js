@@ -8,6 +8,7 @@ class Saddle {
     this.sendMemory = config.sendMemory || true
     this.context = null
     this.stream = ""
+    this.unexpected = "" // Stream not end with or start with valid JSON String.
   }
 
   api(action = "generate") {
@@ -91,12 +92,27 @@ class Saddle {
 
       const text = new TextDecoder().decode(value)
 
-      text.split("\n").forEach(t => {
-        if (t.trim() !== "") {
+      const tokens = text.split("\n")
+      for(var i = 0; i < tokens.length; i++){ //.forEach(
+        var t = tokens[i]
+        if (t.trim() !== ""){
+          if( !t.endsWith('}') || !t.startsWith('{')){
+            if( !t.endsWith('}') && t.startsWith('{') ){
+              this.unexpected = t;
+              t = "" //Empty
+              i = i+1 // Skip this line
+            }
+            if( !t.startsWith('{') && t.endsWith('}') ){
+              t = this.unexpected + t
+              this.unexpected = ""
+            }
+          }
+        }
+        if( t !== ""){
           const parsed = JSON.parse(t)
           callback(parsed)
         }
-      })
+      }
     }
   }
 }
